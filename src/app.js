@@ -1,21 +1,10 @@
 import "dotenv/config";
-import { v4 as uuidv4 } from "uuid";
 const express = require("express");
 const cors = require("cors");
+const MongoClient = require("mongodb").MongoClient;
+const ObjectId = require("mongodb").ObjectId;
 
-import routes from "../routes"; //(A)
-
-let messages = {
-  1: {
-    id: 1,
-    message:
-      "Ad occaecat ad dolore velit nulla exercitation in aute mollit nulla.",
-  },
-  2: {
-    id: 2,
-    message: "Occaecat consequat in occaecat sit elit ea ex id esse ipsum.",
-  },
-};
+import routes from "../routes";
 
 const app = express();
 const port = process.env.PORT;
@@ -25,14 +14,33 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use(cors());
 
-app.use(async (req, res, next) => {
-  req.context = {
-    messages,
-  };
-  next();
+const connect = MongoClient.connect(process.env.DATABASE_URL, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
 });
 
-app.use("/messages", routes.messages); //(B)
+connect
+  .then((client) => {
+    console.log("Connected to Database");
+    const db = client.db(process.env.DATABASE);
+
+    const collections = {
+      messages: db.collection("messages"),
+    };
+
+    app.use(async (req, res, next) => {
+      req.context = {
+        collections,
+        ObjectId,
+      };
+      next();
+    });
+
+    app.use("/messages", routes.messages);
+  })
+  .catch((err) => {
+    console.log("======>", err);
+  });
 
 app.listen(port, () =>
   console.log(`Example app listening at http://localhost:${port}`)
