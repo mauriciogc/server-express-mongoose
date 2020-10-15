@@ -3,29 +3,34 @@ import { v4 as uuidv4 } from "uuid";
 
 const router = Router();
 
-router.get("/", (req, res) => {
-  return res.send(req.context.models.messages);
+router.get("/", async (req, res) => {
+  const messages = await req.context.models.messages.find();
+  return res.send(messages);
 });
 
-router.get("/:messageId", (req, res) => {
-  return res.send(req.context.models.messages[req.params.messageId]);
+router.get("/:messageId", async (req, res) => {
+  const message = await req.context.models.messages.findById(
+    req.params.messageId
+  );
+  return res.send(message);
 });
 
-router.post("/", (req, res) => {
-  const id = uuidv4();
-  const message = {
-    id,
+router.post("/", async (req, res) => {
+  const message = await req.context.models.messages.create({
     message: req.body.message,
-  };
-
-  req.context.models.messages[id] = message;
+  });
 
   return res.send(message);
 });
 
-router.delete("/:messageId", (req, res) => {
-  const message = req.context.models.messages[req.params.messageId];
-  delete req.context.models.messages[req.params.messageId];
+router.delete("/:messageId", async (req, res) => {
+  const message = await req.context.models.messages.deleteOne({
+    _id: req.params.messageId,
+  });
+
+  if (message) {
+    message.deletedCount;
+  }
 
   return res.send(message);
 });
